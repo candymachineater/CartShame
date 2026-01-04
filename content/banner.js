@@ -1,10 +1,81 @@
 /**
- * CartShame - Banner Injection System
- * Injects the guilt-trip banner showing work hours
+ * CartShame - Multi-Step Shame Overlay System
+ * A dramatic, interactive overlay that guilt-trips shoppers through multiple steps
  */
 
-const CartShameBanner = {
-  BANNER_ID: 'cartshame-banner',
+const CartShameOverlay = {
+  OVERLAY_ID: 'cartshame-overlay',
+
+  // Current state
+  currentStep: 0,
+  currentHours: 0,
+  currentTotal: 0,
+  isPartner: true,
+  settings: null,
+
+  // Step content for Partner mode (GF/Wife - shaming "him")
+  STEPS_PARTNER: [
+    {
+      icon: '💸',
+      getTitle: (hours) => `This is going to cost your man <span class="cartshame-hours">${hours}</span> hours of work.`,
+      question: 'Are you sure you want to proceed?',
+      yesText: "Yes, I'm sure",
+      noText: "No, I'll reconsider"
+    },
+    {
+      icon: '😰',
+      getTitle: (hours) => `He will have to work overtime to afford this.`,
+      question: 'Are you okay with that?',
+      yesText: 'Yes, he can handle it',
+      noText: 'Maybe not...'
+    },
+    {
+      icon: '💔',
+      getTitle: (hours) => `That's <span class="cartshame-hours">${hours}</span> hours he could spend with you instead.`,
+      question: 'Still worth it?',
+      yesText: 'Shopping is worth it',
+      noText: "You're right..."
+    },
+    {
+      icon: '😢',
+      getTitle: () => `Last chance! Think about his tired face after all that overtime...`,
+      question: '',
+      yesText: "I don't care, I want it!",
+      noText: "Fine, I'll remove some items"
+    }
+  ],
+
+  // Step content for Self mode (shaming yourself)
+  STEPS_SELF: [
+    {
+      icon: '💸',
+      getTitle: (hours) => `This is going to cost you <span class="cartshame-hours">${hours}</span> hours of your life.`,
+      question: 'Are you sure you want to proceed?',
+      yesText: "Yes, I'm sure",
+      noText: "No, I'll reconsider"
+    },
+    {
+      icon: '😰',
+      getTitle: (hours) => `You'll have to work overtime to afford this.`,
+      question: 'Is it really worth it?',
+      yesText: 'Yes, I deserve it',
+      noText: 'Maybe not...'
+    },
+    {
+      icon: '💔',
+      getTitle: (hours) => `That's <span class="cartshame-hours">${hours}</span> hours you could spend doing literally anything else.`,
+      question: 'Still want it?',
+      yesText: 'Shopping is self-care',
+      noText: "You're right..."
+    },
+    {
+      icon: '😢',
+      getTitle: () => `Last chance! Think about your bank account crying...`,
+      question: '',
+      yesText: "I don't care, I want it!",
+      noText: "Fine, I'll remove some items"
+    }
+  ],
 
   /**
    * Get settings from chrome storage
@@ -30,81 +101,164 @@ const CartShameBanner = {
   },
 
   /**
-   * Create and inject the banner
+   * Get current step content based on role
    */
-  async injectBanner(cartTotal) {
-    // Remove existing banner if present
-    this.removeBanner();
+  getSteps() {
+    return this.isPartner ? this.STEPS_PARTNER : this.STEPS_SELF;
+  },
 
-    const settings = await this.getSettings();
-    if (!settings.showBanner) return;
+  /**
+   * Render the overlay with current step
+   */
+  renderOverlay() {
+    const steps = this.getSteps();
+    const step = steps[this.currentStep];
 
-    const hours = this.calculateHours(cartTotal, settings.hourlyRate);
-    const siteName = CartDetector.getSiteName();
-
-    // Dynamic messaging based on role
-    const isPartner = settings.role === 'partner';
-    const subject = isPartner ? 'him' : 'you';
-
-    // Create banner element
-    const banner = document.createElement('div');
-    banner.id = this.BANNER_ID;
-    banner.innerHTML = `
-      <div class="cartshame-content">
-        <span class="cartshame-icon">💸</span>
-        <span class="cartshame-text">This cart costs ${subject}</span>
-        <span class="cartshame-hours">${hours} hours</span>
-        <span class="cartshame-text">of work!</span>
+    const overlay = document.createElement('div');
+    overlay.id = this.OVERLAY_ID;
+    overlay.innerHTML = `
+      <div class="cartshame-backdrop"></div>
+      <div class="cartshame-modal">
+        <div class="cartshame-step">
+          <span class="cartshame-emoji">${step.icon}</span>
+          <h1 class="cartshame-title">${step.getTitle(this.currentHours)}</h1>
+          ${step.question ? `<p class="cartshame-question">${step.question}</p>` : ''}
+          <div class="cartshame-buttons">
+            <button class="cartshame-btn yes">${step.yesText}</button>
+            <button class="cartshame-btn no">${step.noText}</button>
+          </div>
+          <div class="cartshame-dots">
+            ${steps.map((_, i) => `<span class="cartshame-dot ${i < this.currentStep ? 'completed' : ''} ${i === this.currentStep ? 'active' : ''}"></span>`).join('')}
+          </div>
+        </div>
       </div>
-      <button class="cartshame-close" aria-label="Close">&times;</button>
     `;
 
-    // Add close button handler
-    banner.querySelector('.cartshame-close').addEventListener('click', () => {
-      this.removeBanner();
+    // Add button handlers
+    overlay.querySelector('.cartshame-btn.yes').addEventListener('click', () => this.handleYes());
+    overlay.querySelector('.cartshame-btn.no').addEventListener('click', () => this.handleNo());
+
+    // Click backdrop to close (optional)
+    overlay.querySelector('.cartshame-backdrop').addEventListener('click', () => this.closeOverlay());
+
+    document.body.appendChild(overlay);
+  },
+
+  /**
+   * Update the step content without re-rendering entire overlay
+   */
+  updateStep() {
+    const overlay = document.getElementById(this.OVERLAY_ID);
+    if (!overlay) return;
+
+    const steps = this.getSteps();
+    const step = steps[this.currentStep];
+    const modal = overlay.querySelector('.cartshame-modal');
+
+    // Create new step content
+    const stepEl = document.createElement('div');
+    stepEl.className = 'cartshame-step';
+    stepEl.innerHTML = `
+      <span class="cartshame-emoji">${step.icon}</span>
+      <h1 class="cartshame-title">${step.getTitle(this.currentHours)}</h1>
+      ${step.question ? `<p class="cartshame-question">${step.question}</p>` : ''}
+      <div class="cartshame-buttons">
+        <button class="cartshame-btn yes">${step.yesText}</button>
+        <button class="cartshame-btn no">${step.noText}</button>
+      </div>
+      <div class="cartshame-dots">
+        ${steps.map((_, i) => `<span class="cartshame-dot ${i < this.currentStep ? 'completed' : ''} ${i === this.currentStep ? 'active' : ''}"></span>`).join('')}
+      </div>
+    `;
+
+    // Add button handlers
+    stepEl.querySelector('.cartshame-btn.yes').addEventListener('click', () => this.handleYes());
+    stepEl.querySelector('.cartshame-btn.no').addEventListener('click', () => this.handleNo());
+
+    // Replace old step with new
+    const oldStep = modal.querySelector('.cartshame-step');
+    modal.replaceChild(stepEl, oldStep);
+  },
+
+  /**
+   * Handle Yes button click - advance to next step
+   */
+  handleYes() {
+    const steps = this.getSteps();
+    if (this.currentStep < steps.length - 1) {
+      this.currentStep++;
+      this.updateStep();
+    } else {
+      // Last step - she's committed! Close the overlay
+      this.closeOverlay();
+    }
+  },
+
+  /**
+   * Handle No button click - close overlay
+   */
+  handleNo() {
+    this.closeOverlay();
+  },
+
+  /**
+   * Close the overlay with animation
+   */
+  closeOverlay() {
+    const overlay = document.getElementById(this.OVERLAY_ID);
+    if (!overlay) return;
+
+    overlay.classList.add('closing');
+    setTimeout(() => {
+      overlay.remove();
+    }, 300);
+  },
+
+  /**
+   * Update hours display when cart changes (live tracking)
+   */
+  updateHoursDisplay(newTotal) {
+    this.currentTotal = newTotal;
+    this.currentHours = this.calculateHours(newTotal, this.settings.hourlyRate);
+
+    const hoursEls = document.querySelectorAll('.cartshame-hours');
+    hoursEls.forEach(el => {
+      el.textContent = this.currentHours;
+      el.classList.add('pulse');
+      setTimeout(() => el.classList.remove('pulse'), 600);
     });
 
-    // Insert at top of body
-    document.body.insertBefore(banner, document.body.firstChild);
-    document.body.classList.add('cartshame-active');
+    // Update the title with new hours
+    const titleEl = document.querySelector('.cartshame-title');
+    if (titleEl) {
+      const steps = this.getSteps();
+      const step = steps[this.currentStep];
+      titleEl.innerHTML = step.getTitle(this.currentHours);
+    }
+  },
+
+  /**
+   * Show the overlay
+   */
+  async showOverlay(cartTotal) {
+    // Remove existing overlay if present
+    const existing = document.getElementById(this.OVERLAY_ID);
+    if (existing) existing.remove();
+
+    this.settings = await this.getSettings();
+    if (!this.settings.showBanner) return;
+
+    this.currentTotal = cartTotal;
+    this.currentHours = this.calculateHours(cartTotal, this.settings.hourlyRate);
+    this.isPartner = this.settings.role === 'partner';
+    this.currentStep = 0;
+
+    this.renderOverlay();
 
     // Track this cart view
-    this.trackCartView(siteName, cartTotal, parseFloat(hours));
+    this.trackCartView(CartDetector.getSiteName(), cartTotal, parseFloat(this.currentHours));
 
-    console.log(`[CartShame] Injected banner: $${cartTotal.toFixed(2)} = ${hours} hours @ $${settings.hourlyRate}/hr`);
-  },
-
-  /**
-   * Update existing banner with new total
-   */
-  async updateBanner(cartTotal) {
-    const banner = document.getElementById(this.BANNER_ID);
-    if (!banner) {
-      await this.injectBanner(cartTotal);
-      return;
-    }
-
-    const settings = await this.getSettings();
-    const hours = this.calculateHours(cartTotal, settings.hourlyRate);
-
-    const hoursElement = banner.querySelector('.cartshame-hours');
-    if (hoursElement) {
-      hoursElement.textContent = `${hours} hours`;
-      // Add pulse animation on update
-      hoursElement.classList.add('cartshame-pulse');
-      setTimeout(() => hoursElement.classList.remove('cartshame-pulse'), 600);
-    }
-  },
-
-  /**
-   * Remove the banner
-   */
-  removeBanner() {
-    const banner = document.getElementById(this.BANNER_ID);
-    if (banner) {
-      banner.remove();
-      document.body.classList.remove('cartshame-active');
-    }
+    console.log(`[CartShame] Showing overlay: $${cartTotal.toFixed(2)} = ${this.currentHours} hours @ $${this.settings.hourlyRate}/hr`);
   },
 
   /**
@@ -122,7 +276,7 @@ const CartShameBanner = {
   },
 
   /**
-   * Initialize the banner system
+   * Initialize the overlay system
    */
   async init() {
     // Check if this is a cart page
@@ -133,26 +287,39 @@ const CartShameBanner = {
 
     console.log('[CartShame] Cart page detected, scanning for total...');
 
+    // Get settings
+    this.settings = await this.getSettings();
+
     // Try to detect cart total
     const result = CartDetector.detectCartTotal();
     if (result && result.price > 0) {
-      await this.injectBanner(result.price);
+      await this.showOverlay(result.price);
     }
 
-    // Watch for cart updates
+    // Watch for cart updates (live tracking)
     CartDetector.watchForChanges(async (newTotal) => {
-      await this.updateBanner(newTotal);
+      const overlay = document.getElementById(this.OVERLAY_ID);
+      if (overlay) {
+        // Update existing overlay with new total
+        this.updateHoursDisplay(newTotal);
+      } else {
+        // Show new overlay if closed
+        await this.showOverlay(newTotal);
+      }
     });
   }
 };
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => CartShameBanner.init());
+  document.addEventListener('DOMContentLoaded', () => CartShameOverlay.init());
 } else {
   // Small delay to ensure detector.js is loaded
-  setTimeout(() => CartShameBanner.init(), 100);
+  setTimeout(() => CartShameOverlay.init(), 100);
 }
 
 // Make globally available
-window.CartShameBanner = CartShameBanner;
+window.CartShameOverlay = CartShameOverlay;
+
+// Keep old name for backwards compatibility
+window.CartShameBanner = CartShameOverlay;
