@@ -10,7 +10,8 @@ const WEEK_IN_MINUTES = 60 * 24 * 7; // 10080 minutes
 const DEFAULT_SETTINGS = {
   hourlyRate: 50,
   showBanner: true,
-  notificationsEnabled: true
+  notificationsEnabled: true,
+  role: 'partner'  // 'partner' (GF/Wife - shame him) or 'self' (shame yourself)
 };
 
 // Default stats
@@ -84,13 +85,17 @@ async function generateWeeklyReport() {
 
   if (settings.notificationsEnabled && weekly.totalHours > 0) {
     const formattedValue = formatCurrency(weekly.totalValue);
+    const isPartner = settings.role === 'partner';
+    const message = isPartner
+      ? `This week, you almost made him work ${weekly.totalHours.toFixed(1)} hours (${formattedValue}) for your shopping carts! Abandoned carts up 340%.`
+      : `This week, you almost spent ${weekly.totalHours.toFixed(1)} hours of work (${formattedValue}) on shopping carts! Abandoned carts up 340%.`;
 
     // Create notification
     chrome.notifications.create('weekly-report', {
       type: 'basic',
       iconUrl: 'icons/icon128.png',
       title: 'CartShame Weekly Report',
-      message: `This week, you almost spent ${weekly.totalHours.toFixed(1)} hours of work (${formattedValue}) browsing shopping carts! Abandoned carts up 340%.`,
+      message: message,
       priority: 2
     });
 

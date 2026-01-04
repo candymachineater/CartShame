@@ -15,7 +15,8 @@ const CartShameBanner = {
         resolve(result.settings || {
           hourlyRate: 50,
           showBanner: true,
-          notificationsEnabled: true
+          notificationsEnabled: true,
+          role: 'partner'
         });
       });
     });
@@ -41,13 +42,17 @@ const CartShameBanner = {
     const hours = this.calculateHours(cartTotal, settings.hourlyRate);
     const siteName = CartDetector.getSiteName();
 
+    // Dynamic messaging based on role
+    const isPartner = settings.role === 'partner';
+    const subject = isPartner ? 'him' : 'you';
+
     // Create banner element
     const banner = document.createElement('div');
     banner.id = this.BANNER_ID;
     banner.innerHTML = `
       <div class="cartshame-content">
         <span class="cartshame-icon">💸</span>
-        <span class="cartshame-text">This cart costs him</span>
+        <span class="cartshame-text">This cart costs ${subject}</span>
         <span class="cartshame-hours">${hours} hours</span>
         <span class="cartshame-text">of work!</span>
       </div>

@@ -17,12 +17,32 @@ async function loadSettings() {
   const settings = result.settings || {
     hourlyRate: 50,
     showBanner: true,
-    notificationsEnabled: true
+    notificationsEnabled: true,
+    role: 'partner'
   };
 
   document.getElementById('hourlyRate').value = settings.hourlyRate;
   document.getElementById('showBanner').checked = settings.showBanner;
   document.getElementById('notifications').checked = settings.notificationsEnabled;
+
+  // Update role buttons
+  updateRoleButtons(settings.role);
+}
+
+/**
+ * Update role button active states
+ */
+function updateRoleButtons(role) {
+  const partnerBtn = document.getElementById('rolePartner');
+  const selfBtn = document.getElementById('roleSelf');
+
+  if (role === 'partner') {
+    partnerBtn.classList.add('active');
+    selfBtn.classList.remove('active');
+  } else {
+    partnerBtn.classList.remove('active');
+    selfBtn.classList.add('active');
+  }
 }
 
 /**
@@ -74,17 +94,33 @@ function formatSiteName(hostname) {
 }
 
 /**
+ * Get current role from button states
+ */
+function getCurrentRole() {
+  return document.getElementById('rolePartner').classList.contains('active') ? 'partner' : 'self';
+}
+
+/**
  * Save settings to storage
  */
 async function saveSettings() {
   const settings = {
     hourlyRate: parseFloat(document.getElementById('hourlyRate').value) || 50,
     showBanner: document.getElementById('showBanner').checked,
-    notificationsEnabled: document.getElementById('notifications').checked
+    notificationsEnabled: document.getElementById('notifications').checked,
+    role: getCurrentRole()
   };
 
   await chrome.storage.local.set({ settings });
   console.log('[CartShame] Settings saved:', settings);
+}
+
+/**
+ * Set role and save settings
+ */
+async function setRole(role) {
+  updateRoleButtons(role);
+  await saveSettings();
 }
 
 /**
@@ -117,6 +153,10 @@ async function resetStats() {
  * Set up event listeners
  */
 function setupEventListeners() {
+  // Role buttons
+  document.getElementById('rolePartner').addEventListener('click', () => setRole('partner'));
+  document.getElementById('roleSelf').addEventListener('click', () => setRole('self'));
+
   // Settings changes
   document.getElementById('hourlyRate').addEventListener('change', saveSettings);
   document.getElementById('showBanner').addEventListener('change', saveSettings);
