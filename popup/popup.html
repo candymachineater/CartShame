@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CartShame</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CartShame</h1>
+      <p class="tagline">Know the true cost of shopping</p>
+    </header>
+
+    <section class="stats-section">
+      <div class="stat-card main-stat">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-content">
+          <span class="stat-value" id="lifetimeHours">0</span>
+          <span class="stat-label">lifetime hours "almost spent"</span>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card small">
+          <span class="stat-value" id="weeklyHours">0</span>
+          <span class="stat-label">this week</span>
+        </div>
+        <div class="stat-card small">
+          <span class="stat-value" id="cartSightings">0</span>
+          <span class="stat-label">cart sightings</span>
+        </div>
+      </div>
+
+      <div class="sites-breakdown" id="sitesBreakdown">
+        <!-- Populated dynamically -->
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h2>Settings</h2>
+
+      <div class="setting-row">
+        <label for="hourlyRate">Your hourly rate</label>
+        <div class="input-group">
+          <span class="currency">$</span>
+          <input type="number" id="hourlyRate" min="1" step="0.01" value="50">
+          <span class="unit">/hr</span>
+        </div>
+      </div>
+
+      <div class="setting-row toggle">
+        <label for="showBanner">Show banner on cart pages</label>
+        <input type="checkbox" id="showBanner" checked>
+      </div>
+
+      <div class="setting-row toggle">
+        <label for="notifications">Weekly report notifications</label>
+        <input type="checkbox" id="notifications" checked>
+      </div>
+    </section>
+
+    <footer>
+      <button id="resetStats" class="btn-reset">Reset All Stats</button>
+      <a href="https://github.com/candymachineater/CartShame" target="_blank" class="github-link">
+        ⭐ Star on GitHub
+      </a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

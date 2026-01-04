@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "CartShame",
+  "version": "1.0.0",
+  "description": "Shows how many hours of work your shopping cart costs. Guilt-trip edition.",
+
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/detector.js", "content/banner.js"],
+      "css": ["styles/banner.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.amazon.com/*", "*://*.amazon.co.uk/*", "*://*.amazon.ca/*", "*://*.amazon.de/*", "*://*.amazon.fr/*", "*://*.amazon.es/*", "*://*.amazon.it/*", "*://*.amazon.co.jp/*", "*://*.amazon.in/*", "*://*.amazon.com.au/*"],
+      "js": ["content/sites/amazon.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.shein.com/*"],
+      "js": ["content/sites/shein.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.zara.com/*"],
+      "js": ["content/sites/zara.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
